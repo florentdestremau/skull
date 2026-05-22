@@ -3,6 +3,7 @@ import type { GameAction } from '../game/actions'
 import type { DiskColor, GameState, Player } from '../game/types'
 import { POINTS_TO_WIN } from '../game/types'
 import {
+  diskCount,
   handHasSkull,
   handRoses,
   totalDisksOnTable,
@@ -131,7 +132,11 @@ function Mat({
         })}
       </div>
       <div className="meta">
-        En main : {player.eliminated ? '—' : `${player.hasSkull ? '1 crâne' : '0 crâne'}, ${player.roses} fleur(s)`}
+        {player.eliminated
+          ? 'Éliminé'
+          : player.id === viewerId
+            ? `Tes disques : ${player.hasSkull ? '1 crâne' : '0 crâne'}, ${player.roses} fleur(s)`
+            : `${diskCount(player)} disque(s)`}
       </div>
     </div>
   )

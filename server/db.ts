@@ -36,3 +36,8 @@ export function loadAllRooms(): Array<{ id: string; json: string }> {
     .prepare('SELECT id, json FROM rooms ORDER BY updated_at DESC LIMIT 500')
     .all() as Array<{ id: string; json: string }>
 }
+
+/** Supprime les parties inactives pour éviter une croissance illimitée du stockage. */
+export function pruneOldRooms(maxAgeMs: number) {
+  db.prepare('DELETE FROM rooms WHERE updated_at < ?').run(Date.now() - maxAgeMs)
+}

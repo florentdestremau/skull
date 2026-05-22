@@ -27,8 +27,9 @@ function broadcast(roomId: string) {
   if (!room) return
   const sockets = rooms.get(roomId)
   if (!sockets) return
-  const pub = publicRoom(room)
   for (const ws of sockets) {
+    // état filtré par destinataire : chacun ne reçoit que ses propres secrets
+    const pub = publicRoom(room, ws.data.playerId)
     ws.send(JSON.stringify({ type: 'ROOM', room: pub, myPlayerId: ws.data.playerId }))
   }
 }
@@ -148,7 +149,13 @@ const server = Bun.serve<WsData, undefined>({
       set.add(ws)
       const room = getRoom(roomId)
       if (room) {
-        ws.send(JSON.stringify({ type: 'ROOM', room: publicRoom(room), myPlayerId: ws.data.playerId }))
+        ws.send(
+          JSON.stringify({
+            type: 'ROOM',
+            room: publicRoom(room, ws.data.playerId),
+            myPlayerId: ws.data.playerId,
+          }),
+        )
       }
     },
     close(ws) {

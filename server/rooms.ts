@@ -2,8 +2,8 @@ import { createInitialState } from '../src/game/setup'
 import { reducer } from '../src/game/reducer'
 import { pendingAutoAction, actingPlayerId } from '../src/game/auto'
 import type { GameAction } from '../src/game/actions'
-import type { GameState } from '../src/game/types'
-import { saveRoom, loadRoom, loadAllRooms } from './db'
+import type { DiskColor, GameState } from '../src/game/types'
+import { saveRoom, loadRoom, loadAllRooms, pruneOldRooms } from './db'
 
 export type Slot = { playerId: string; token: string; name: string; color: string }
 
@@ -17,6 +17,8 @@ export type Room = {
 const PLAYER_COLORS = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c']
 const MAX_SLOTS = 6
 const MIN_SLOTS = 3
+const ROOM_TTL_MS = 7 * 24 * 60 * 60 * 1000
+const MAX_NAME_LEN = 20
 
 const rooms = new Map<string, Room>()
 
@@ -60,14 +62,16 @@ export function getRoom(id: string): Room | null {
 }
 
 export function createRoom(hostName: string): { room: Room; token: string; playerId: string } {
+  pruneOldRooms(ROOM_TTL_MS)
   let id = genId(5)
   while (getRoom(id)) id = genId(5)
   const playerId = 'p0'
   const token = genToken()
+  const name = hostName.slice(0, MAX_NAME_LEN) || 'Joueur 1'
   const room: Room = {
     id,
     host: playerId,
-    slots: [{ playerId, token, name: hostName || 'Joueur 1', color: PLAYER_COLORS[0] }],
+    slots: [{ playerId, token, name, color: PLAYER_COLORS[0] }],
     state: null,
   }
   rooms.set(id, room)
@@ -96,7 +100,7 @@ export function joinRoom(
   room.slots.push({
     playerId,
     token,
-    name: name || `Joueur ${room.slots.length + 1}`,
+    name: name.slice(0, MAX_NAME_LEN) || `Joueur ${room.slots.length + 1}`,
     color: PLAYER_COLORS[room.slots.length],
   })
   persist(room)
@@ -174,11 +178,35 @@ export function slotForToken(room: Room, token: string): Slot | undefined {
   return room.slots.find(s => s.token === token)
 }
 
-export function publicRoom(room: Room) {
+/**
+ * Masque l'information secrète avant d'envoyer l'état à un client :
+ * - couleurs des disques non retournés des autres joueurs,
+ * - composition (fleurs/crâne) des autres joueurs — seul le total est public.
+ * Le moteur conserve l'état complet côté serveur ; seule la diffusion est filtrée.
+ */
+function redactState(state: GameState, viewerId?: string): GameState {
+  const s = structuredClone(state)
+  for (const p of s.players) {
+    if (p.id === viewerId) continue
+    const flips = s.flipped[p.id] ?? 0
+    const len = p.stack.length
+    p.stack = p.stack.map((color, i) => {
+      const revealed = i > len - 1 - flips
+      return revealed ? color : ('rose' as DiskColor)
+    })
+    // total de disques préservé, composition masquée
+    const total = p.roses + (p.hasSkull ? 1 : 0)
+    p.roses = total
+    p.hasSkull = false
+  }
+  return s
+}
+
+export function publicRoom(room: Room, viewerId?: string) {
   return {
     id: room.id,
     host: room.host,
     slots: room.slots.map(s => ({ playerId: s.playerId, name: s.name, color: s.color })),
-    state: room.state,
+    state: room.state ? redactState(room.state, viewerId) : null,
   }
 }
