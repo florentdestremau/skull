@@ -91,6 +91,28 @@ function Home({
       <p className="subtitle">Jeu de bluff et d'enchères — 3 à 6 joueurs</p>
 
       <div className="card col">
+        <h2>Comment jouer</h2>
+        <p className="meta">
+          Chaque joueur a 4 disques : 3 fleurs 🌸 et 1 crâne 💀. Réussir
+          2 défis pour gagner.
+        </p>
+        <ol className="rules">
+          <li><strong>Pose</strong> — chacun pose un disque face cachée sur sa pile.</li>
+          <li><strong>Ajout ou défi</strong> — à ton tour, ajoute un disque
+            <em> ou</em> lance un défi : annonce un nombre de fleurs à retourner.</li>
+          <li><strong>Enchères</strong> — les suivants surenchérissent ou passent.
+            Le plus offrant devient le <strong>Challenger</strong>.</li>
+          <li><strong>Tentative</strong> — le Challenger retourne d'abord ses
+            disques, puis ceux des adversaires. Que des fleurs jusqu'au nombre
+            annoncé → <span className="ok">défi réussi</span>. Un crâne →
+            <span className="ko"> échec</span>, il perd un disque.</li>
+          <li><strong>Victoire</strong> — 2 défis réussis, ou rester le dernier
+            joueur non éliminé.</li>
+        </ol>
+        <img className="shot" src="/screenshot.png" alt="Aperçu d'une partie de Skull" />
+      </div>
+
+      <div className="card col">
         <h2>Partie locale</h2>
         <p className="meta">Tour par tour sur cet appareil.</p>
         <div className="row">
